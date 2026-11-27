@@ -58,7 +58,7 @@ function notesCell(q,duplicates){
   const flags=q.review_flags?.length?q.review_flags:reviewFlags(q);
   const match=duplicates.get(q.id);
   const lines=[...flags,...(match?[duplicateCaption(match)]:[]),manualBankNotes.get(q.id)].filter(Boolean);
-  return '<div class="bank-note"><strong>Ghi chú</strong><div>'+esc(lines.join('\n')||'—')+'</div><button data-go="bank-note:'+esc(q.id)+'">Sửa ghi chú</button></div>';
+  return (lines.length?'<span class="bank-note">'+esc(lines.join(' · '))+'</span>':'')+adminIcon('note','Ghi chú quản trị','data-go','bank-note:'+q.id);
 }
 function editBankNote(id){
   if(!bank.some(q=>q.id===id))return;

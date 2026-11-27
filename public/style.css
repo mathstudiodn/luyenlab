@@ -272,3 +272,21 @@ mark { background: #ffeba8; }
 .question-table td{border:1px solid #839caf;padding:.4rem .7rem;min-width:2rem}
 
 .bank-note{flex-basis:100%;width:100%;white-space:pre-wrap;overflow-wrap:anywhere}.bank-note button{margin-top:.3rem}
+
+/* Preserve full width; baseline height is 1.5 times the former three-row field. */
+.editor-content textarea[name=q]{height:calc(4.5lh + 27px);min-height:7rem}
+.admin-icon{width:32px;height:32px;min-height:32px;min-width:32px;padding:5px;display:inline-grid;place-items:center;border:1px solid transparent;border-radius:7px;background:transparent;color:#195b80}
+.admin-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.admin-icon:hover,.admin-icon:focus-visible{background:#e2f4ff;border-color:#84bddc}
+.admin-icon.icon-remove{color:#a02b35}
+.field-tools{gap:1px;flex-wrap:nowrap;justify-self:end}
+.answer-row{grid-template-columns:auto minmax(0,1fr) auto}
+.statement-row{grid-template-columns:minmax(0,1fr) auto auto}
+.statement-row>.field-tools{grid-column:3;grid-row:1}
+.statement-row>label:last-child{grid-column:2;grid-row:1}
+.bank-row-actions{gap:2px}.bank-note{font-size:.84rem;line-height:1.35}
+.import-fields,.preview-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:.65rem}
+.import-fields select{width:100%}
+.preview-meta{background:#eef8ff;border-radius:10px;padding:.75rem;margin:.5rem 0}
+.preview-meta dt{font-size:.8rem;color:#435f70}.preview-meta dd{margin:2px 0;font-weight:600}
+@media(max-width:480px){.answer-row,.statement-row{gap:3px}.statement-row select{max-width:4.5rem}.admin-icon{width:30px;min-width:30px}.answer-text{gap:4px;padding:0 4px}}

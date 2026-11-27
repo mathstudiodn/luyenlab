@@ -44,8 +44,18 @@ function catalogAdmin(){
     +catalog.domains.map((d,i)=>'<details><summary>'+esc(d.name)+'</summary><ul>'+d.skills.map((s,j)=>'<li>'+esc(s.name)+' '+btn('Bỏ skill','catalog-delete:sat,'+i+','+j)+'</li>').join('')+'</ul></details>').join('');
   return '<details class="panel"><summary>Quản lý danh mục lớp, chương, bài và skill</summary><div class="split"><div><form id="catalog-manual"><h3>Thêm thủ công</h3><label>Lộ trình <select name="track"><option value="vn">THPT</option><option value="sat">SAT</option></select></label><div data-catalog-track="vn"><label>Khối <select name="grade"><option>10</option><option>11</option><option>12</option></select></label><label>Tên lớp <input name="className" maxlength="240" list="catalog-classes"></label><datalist id="catalog-classes">'+optionsFor(catalog.grades,g=>g.name,g=>g.name)+'</datalist><label>Tên chương <input name="chapter" maxlength="240" list="catalog-chapters"></label><datalist id="catalog-chapters">'+optionsFor([...new Set(catalog.grades.flatMap(g=>g.chapters.map(c=>c.name)))],x=>x,x=>x)+'</datalist><label>Tên bài <input name="lesson" maxlength="240"></label></div><div data-catalog-track="sat" hidden><label>Domain <select name="domain">'+optionsFor(catalog.domains,d=>d.name,d=>d.name)+'</select></label><label>Tên skill <input name="skill" maxlength="240"></label></div><button class="primary">Thêm vào danh mục</button></form><form id="catalog-file"><h3>Nhập danh mục từ tệp</h3><p><a href="templates/mau-danh-muc.json" download>Tải mẫu JSON</a> · <a href="templates/danh-muc-day-du.json" download>Tải danh mục từ Excel</a></p><label>Tệp JSON <input name="file" type="file" accept=".json" required></label><button>Gộp danh mục</button></form></div><div id="catalog-outline">'+outline+'</div></div></details>';
 }
+function importChapterKey(leaf){return JSON.stringify([leaf.track,leaf.grade,leaf.topic]);}
+function importChapterOptions(){
+  const chapters=new Map(catalogLeaves().map(l=>[importChapterKey(l),(l.grade?'Lớp '+l.grade:'SAT')+' · '+l.topic]));
+  return optionsFor([...chapters],x=>x[0],x=>x[1]);
+}
+function importSkills(form){
+  const choices=catalogLeaves().filter(l=>importChapterKey(l)===form.elements.chapter.value);
+  form.elements.leaf.innerHTML='<option value="">Chọn bài / skill</option>'+optionsFor(choices,l=>l.id,l=>l.name);
+  form.elements.leaf.disabled=!choices.length;
+}
 function texAdmin(){
-  return '<details class="panel"><summary>Nhập câu hỏi từ LaTeX hoặc Word</summary><p><a href="templates/mau-cau-hoi.tex" download>Tải mẫu ex_test (.tex)</a> · <a href="templates/mau-cau-hoi.docx" download>Tải mẫu Word (.docx)</a></p><form id="tex-import"><label>Bài hoặc skill <select name="leaf" required><option value="">Chọn bài hoặc skill</option>'+optionsFor(catalogLeaves(),x=>x.id,x=>x.path)+'</select></label><label>Mức độ <select name="difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></label><label>Tệp .tex hoặc .docx <input name="file" type="file" accept=".tex,.docx" required></label><button>Xem trước</button></form><div id="tex-preview"></div></details>';
+  return '<details class="panel"><summary>Nhập câu hỏi từ LaTeX hoặc Word</summary><p><a href="templates/mau-cau-hoi.tex" download>Tải mẫu ex_test (.tex)</a> · <a href="templates/mau-cau-hoi.docx" download>Tải mẫu Word (.docx)</a></p><form id="tex-import"><div class="import-fields"><label>Chương / Domain <select name="chapter" required><option value="">Chọn chương / domain</option>'+importChapterOptions()+'</select></label><label>Bài / Skill <select name="leaf" required disabled><option value="">Chọn chương trước</option></select></label><label>Mức độ <select name="difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></label></div><label>Tệp .tex hoặc .docx <input name="file" type="file" accept=".tex,.docx" required></label><button>Xem trước</button></form><div id="tex-preview"></div></details>';
 }
 let catalogNotice='';
 async function adminImport(event){
@@ -79,10 +89,13 @@ async function adminImport(event){
       const preview=document.querySelector('#tex-preview');
       preview.innerHTML='';
       const leaf=catalogLeaves().find(x=>x.id===data.leaf);
-      if(!leaf)throw new Error('Hãy chọn bài hoặc skill.');
+      if(!leaf || importChapterKey(leaf)!==data.chapter)throw new Error('Hãy chọn chương và bài hoặc skill tương ứng.');
       const word=/\.docx$/i.test(data.file.name);
       if(data.file.size>(word?5000000:1000000))throw new Error('Tệp vượt dung lượng cho phép (Word 5 MB, TeX 1 MB).');
-      preview.innerHTML=importPreview(word?await wordQuestionBlocks(data.file):await data.file.text(),leaf,data.difficulty,word);
+      const source=word?await wordQuestionBlocks(data.file):await data.file.text();
+      if(!form.isConnected||form.elements.chapter.value!==data.chapter||form.elements.leaf.value!==data.leaf||
+        form.elements.difficulty.value!==data.difficulty||form.elements.file.files[0]!==data.file)return;
+      preview.innerHTML=importPreview(source,leaf,data.difficulty,word);
       window.MathJax?.typesetPromise?.([preview]).catch(()=>{});
       status.textContent='';
       return;
@@ -411,9 +424,11 @@ function renderSavedBank(message=''){
       <input type="checkbox" data-bank-select="${esc(q.id)}" aria-label="Chọn câu hỏi" ${bankSelection.has(q.id)?'checked':''} ${deletingQuestions?'disabled':''}>
       <details><summary>${esc(q.q.replace(mediaPattern,'[Hình]').slice(0,110))}</summary><p>${esc(paths.get(q.catalog_id)??q.topic)} · ${esc(statusNames[q.status])} · ${esc(q.difficulty)} · ${esc(bankTypes[q.type]??q.type)}</p><p class="bank-question">${richText(q.q)}</p></details>
       <span class="bank-source">${esc(q.source||"—")}</span><time datetime="${esc(q.created_at)}">${Number.isFinite(Date.parse(q.created_at))?esc(dateLabel.format(new Date(q.created_at))):"—"}</time>
-      <div class="bank-row-actions">${notesCell(q,duplicates)}<button data-go="bank-preview:${esc(q.id)}">Xem trước</button><button data-go="versions:${esc(q.id)}">Lịch sử</button>
-        <button class="bank-action" data-go="edit-question:${esc(q.id)}" ${deletingQuestions?'disabled':''}>${editIcon} Sửa</button>
-        <button class="bank-action bank-danger" data-go="remove:${esc(q.id)}" ${deletingQuestions?'disabled':''}>${trashIcon} Xóa</button>
+      <div class="bank-row-actions">${notesCell(q,duplicates)}
+        ${adminIcon('preview','Xem trước câu hỏi','data-go','bank-preview:'+q.id)}
+        ${adminIcon('history','Lịch sử chỉnh sửa','data-go','versions:'+q.id)}
+        ${adminIcon('edit','Sửa câu hỏi','data-go','edit-question:'+q.id,deletingQuestions)}
+        ${adminIcon('remove','Xóa câu hỏi','data-go','remove:'+q.id,deletingQuestions)}
       </div></article>`).join(''):'<p>Không có câu hỏi phù hợp.</p>');
   bankSelectionStatus();
   window.MathJax?.typesetPromise?.([section]).catch(()=>{});
@@ -539,7 +554,7 @@ function questionEditor(){
     </div>
     <div class="editor-content">
       <label>Nguồn / ID SAT <input name="source" placeholder="93954cfa hoặc tên nguồn"></label><label>Đề bài <textarea name="q" rows="3" maxlength="12000" placeholder="Nhập đề bài" required></textarea></label>
-      ${imageButton('q','đề bài')}<p class="muted editor-hint">Đặt con trỏ vào ô rồi bấm Chèn hình. Xóa toàn bộ dấu chèn để bỏ hình. Đề bài tối đa 3 hình.</p>
+      ${imageButton('q','đề bài')}<p class="muted editor-hint">Đề bài tối đa 3 hình. Bảng và hình được chèn tại con trỏ.</p>
       <p class="muted editor-hint">Dùng <code>$...$</code> cho công thức toán.</p>
       <fieldset data-answer-type="mc"><legend>Phương án</legend><p class="muted editor-hint">Chọn vòng tròn cạnh phương án đúng.</p>${rows}</fieldset>
       <fieldset data-answer-type="tf" hidden disabled><legend>Mệnh đề và đáp án</legend>${statements}</fieldset>
@@ -606,7 +621,7 @@ function admin(){
 }
 app.addEventListener('submit',adminImport);
 app.addEventListener('submit',studentForms);
-app.addEventListener('change',e=>{if(e.target.dataset.truth!==undefined&&run&&page==='exam'){const values=run.answers[run.index]||[null,null,null,null];values[Number(e.target.dataset.truth)]=e.target.value==='true';run.answers[run.index]=values;persist();const button=app.querySelector('.palette [data-go="jump:'+run.index+'"]');button?.classList.add('selected');return;}if(e.target.form?.id==='tex-import'){pendingImport=[];document.querySelector('#tex-preview').innerHTML='';}if(e.target.form?.id==='catalog-manual'&&e.target.name==='track')e.target.form.querySelectorAll('[data-catalog-track]').forEach(x=>x.hidden=x.dataset.catalogTrack!==e.target.value);if(e.target.id==='grade'){selectedClass=e.target.value;setup();}if(e.target.id==='duration'){const selected=[...document.querySelectorAll('[name=topic]')].filter(x=>x.checked).map(x=>x.value);duration=Number(e.target.value);setup();document.querySelectorAll('[name=topic]').forEach(x=>x.checked=selected.includes(x.value));}if(e.target.id==='domain'){domain=e.target.value;selectedSkill='';setup();}if(e.target.id==='skill')selectedSkill=e.target.value;if(e.target.form?.id==='question-form'&&['track','grade'].includes(e.target.name))fields();if(e.target.form?.id==='question-form'&&e.target.name==='type')updateAnswerFields(e.target.form);});
+app.addEventListener('change',e=>{if(e.target.dataset.truth!==undefined&&run&&page==='exam'){const values=run.answers[run.index]||[null,null,null,null];values[Number(e.target.dataset.truth)]=e.target.value==='true';run.answers[run.index]=values;persist();const button=app.querySelector('.palette [data-go="jump:'+run.index+'"]');button?.classList.add('selected');return;}if(e.target.form?.id==='tex-import'){if(e.target.name==='chapter')importSkills(e.target.form);pendingImport=[];document.querySelector('#tex-preview').innerHTML='';}if(e.target.form?.id==='catalog-manual'&&e.target.name==='track')e.target.form.querySelectorAll('[data-catalog-track]').forEach(x=>x.hidden=x.dataset.catalogTrack!==e.target.value);if(e.target.id==='grade'){selectedClass=e.target.value;setup();}if(e.target.id==='duration'){const selected=[...document.querySelectorAll('[name=topic]')].filter(x=>x.checked).map(x=>x.value);duration=Number(e.target.value);setup();document.querySelectorAll('[name=topic]').forEach(x=>x.checked=selected.includes(x.value));}if(e.target.id==='domain'){domain=e.target.value;selectedSkill='';setup();}if(e.target.id==='skill')selectedSkill=e.target.value;if(e.target.form?.id==='question-form'&&['track','grade'].includes(e.target.name))fields();if(e.target.form?.id==='question-form'&&e.target.name==='type')updateAnswerFields(e.target.form);});
 app.addEventListener('input',event=>{
   if(!run||page!=='exam')return;
   const field=event.target;

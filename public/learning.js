@@ -133,7 +133,7 @@ function importPreview(source,leaf,difficulty,word=false){
       return '<article><label><input type="checkbox" name="row" value="'+index+'" '+(duplicate&&!reasons.length?'':'checked')+'> Câu '+(i+1)+' · '+esc(bankTypes[q.type])+(q.source?' · '+esc(q.source):'')+(reasons.length?' · Bản nháp — '+esc(reasons.join(', ')):'')+(duplicate?' · '+esc(duplicateCaption(duplicate)):'')+'</label><details><summary>'+richText(q.q)+'</summary>'+[...q.choices,...q.statements].map(v=>'<p>'+esc(v)+'</p>').join('')+'<p>Đáp án · '+esc(Array.isArray(q.answer)?q.answer.map(v=>v?'Đ':'S').join(' / '):q.answer)+'</p><p>'+richText(q.why)+'</p></details></article>';
     }catch(e){return '<p>Câu '+(i+1)+' · '+esc(e.message.replace(/^Câu 1: /,''))+'</p>';}
   });
-  return '<form id="tex-save"><h3>'+blocks.length+' câu · '+esc(leaf.path)+'</h3>'+rows.join('')+'<button class="primary">Nhập câu đã chọn</button></form>';
+  return '<form id="tex-save"><h3>'+blocks.length+' câu · '+esc(leaf.path)+' · '+esc(difficulty)+'</h3>'+rows.join('')+'<button class="primary">Nhập câu đã chọn</button></form>';
 }
 function bulkPanel(){
   return '<details><summary>Cập nhật các câu đã chọn</summary><form id="bulk-edit"><label>Trạng thái <select name="status"><option value="">Giữ hiện tại</option>'+optionsFor(Object.entries(statusNames),x=>x[0],x=>x[1])+'</select></label><label>Bài / skill <select name="leaf"><option value="">Giữ hiện tại</option>'+optionsFor(catalogLeaves(),x=>x.id,x=>x.path)+'</select></label><button>Áp dụng</button></form></details>';

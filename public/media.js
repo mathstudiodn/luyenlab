@@ -14,8 +14,25 @@ function renderMediaText(value){
     return url?'<img class="inline-math-image" src="'+esc(url)+'" alt="Hình minh họa toán học">':'[Hình minh họa]';
   });
 }
+const adminGlyphs={
+  table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M10 10v10"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.4"/><path d="m3 17 5-5 4 4 4-6 5 7"/>',
+  preview:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  history:'<path d="M3 11a9 9 0 1 1 2 7M3 5v6h6m3-4v5l3 2"/>',
+  note:'<path d="M4 3h16v12l-6 6H4zM14 21v-6h6M8 8h8M8 12h5"/>',
+  edit:'<path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/>',
+  remove:'<path d="M3 6h18M9 6V3h6v3m4 0-1 15H6L5 6m5 4v7m4-7v7"/>'
+};
+function adminIcon(icon,label,attribute,value,disabled=false){
+  return '<button type="button" class="admin-icon icon-'+icon+'" '+attribute+'="'+esc(value)+'" title="'+esc(label)+'" aria-label="'+esc(label)+'" '+(disabled?'disabled':'')+'><svg aria-hidden="true" viewBox="0 0 24 24">'+adminGlyphs[icon]+'</svg></button>';
+}
 function imageButton(name,label){
-  return '<span class="field-tools"><button type="button" data-table-field="'+name+'" aria-label="Thêm bảng vào '+label+'">Thêm bảng</button> <button class="insert-picture" type="button" data-picture="'+name+'" aria-label="Chèn hình vào '+label+'">Chèn hình</button></span>';
+  return '<span class="field-tools">'+adminIcon('table','Thêm bảng vào '+label,'data-table-field',name)+adminIcon('image','Chèn hình vào '+label,'data-picture',name)+'</span>';
+}
+function previewMetadata(q){
+  const leaf=catalogLeaves().find(l=>l.id===q.catalog_id);
+  const fields=[['Chương / Domain',leaf?.topic||q.topic],['Bài / Skill',leaf?.name],['Mức độ',q.difficulty]];
+  return '<dl class="preview-meta">'+fields.map(([label,value])=>'<div><dt>'+label+'</dt><dd>'+esc(value||'Chưa xác định')+'</dd></div>').join('')+'</dl>';
 }
 async function prepareImage(file){
   const type=file.type||({'jpeg':'image/jpeg','jpg':'image/jpeg','png':'image/png','webp':'image/webp','svg':'image/svg+xml'})[file.name.split('.').pop().toLowerCase()];
@@ -79,7 +96,7 @@ function fullPreview(q){
   let key=q.answer??'';
   if(q.type==='mc'){const i=q.choices.indexOf(key);key=key&&i>=0?'ABCD'[i]+'. '+key:'';}
   if(q.type==='tf')key=key.map((v,i)=>'abcd'[i]+') '+(v===true?'Đúng':v===false?'Sai':'Chưa chọn')).join(' · ');
-  popup('<div class="full-preview"><h2>Xem trước câu hỏi</h2>'+(q.source?'<p>Nguồn / ID SAT · '+esc(q.source)+'</p>':'')+'<h3>Đề bài</h3><div>'+richText(q.q||'Chưa nhập đề bài.')+'</div>'+(q.image?'<img class="inline-math-image" src="'+esc(q.image)+'" alt="Hình minh họa đề bài">':'')+(choices?'<ol>'+choices+'</ol>':'')+'<h3>Đáp án</h3><div>'+richText(key||'Chưa nhập đáp án.')+'</div><h3>Lời giải</h3><div>'+richText(q.why||'Chưa nhập lời giải.')+'</div></div>');
+  popup('<div class="full-preview"><h2>Xem trước câu hỏi</h2>'+previewMetadata(q)+(q.source?'<p>Nguồn / ID SAT · '+esc(q.source)+'</p>':'')+'<h3>Đề bài</h3><div>'+richText(q.q||'Chưa nhập đề bài.')+'</div>'+(q.image?'<img class="inline-math-image" src="'+esc(q.image)+'" alt="Hình minh họa đề bài">':'')+(choices?'<ol>'+choices+'</ol>':'')+'<h3>Đáp án</h3><div>'+richText(key||'Chưa nhập đáp án.')+'</div><h3>Lời giải</h3><div>'+richText(q.why||'Chưa nhập lời giải.')+'</div></div>');
 }
 function previewEditor(){
   const f=document.querySelector('#question-form'),d=Object.fromEntries(new FormData(f));
@@ -87,5 +104,5 @@ function previewEditor(){
   const slots=[0,1,2,3],choices=slots.map(i=>read('option'+i)),statements=slots.map(i=>read('statement'+i));
   const answer=d.type==='mc'?choices[d.correct]:d.type==='short'?d.answer:slots.map(i=>d['truth'+i]==='true'?true:d['truth'+i]==='false'?false:null);
   const prefix=splitSource(read('q'));
-  fullPreview({type:d.type,source:prefix.source||d.source,q:prefix.q,why:read('why'),choices,statements,answer,image:retainedImage(f)});
+  fullPreview({catalog_id:d.topic==='existing'?editingQuestion?.catalog_id:d.topic,topic:d.topic==='existing'?editingQuestion?.topic:'',difficulty:d.difficulty,type:d.type,source:prefix.source||d.source,q:prefix.q,why:read('why'),choices,statements,answer,image:retainedImage(f)});
 }
