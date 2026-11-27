@@ -1,0 +1,28 @@
+{
+  "grades": [
+    {
+      "grade": 12,
+      "name": "Lớp 12",
+      "chapters": [
+        {
+          "name": "Chương bổ sung",
+          "lessons": [
+            {
+              "name": "Bài mẫu"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "domains": [
+    {
+      "name": "Algebra",
+      "skills": [
+        {
+          "name": "Sample skill"
+        }
+      ]
+    }
+  ]
+}
