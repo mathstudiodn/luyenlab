@@ -1,6 +1,32 @@
-const formatQuestionMath = text => text.trim()
-  .replace(/(^|[^\\])\$\$([\s\S]+?)\$\$/g,'$1\\[$2\\]')
-  .replace(/(^|[^\\])\$([^$]+?)\$/g,'$1\\($2\\)');
+function formatQuestionMath(text) {
+  const source = text.trim();
+  // Consume backslash escapes as whole tokens: \$ cannot close a formula.
+  const tokens = /\\[\s\S]|\$\$?/g;
+  let output = '', copied = 0, opening = null, explicitEnd = '';
+  for (const match of source.matchAll(tokens)) {
+    const token = match[0];
+    if (explicitEnd) {
+      if (token === explicitEnd) explicitEnd = '';
+      continue;
+    }
+    if (token === '\\(' || token === '\\[') {
+      opening = null;
+      explicitEnd = token === '\\(' ? '\\)' : '\\]';
+      continue;
+    }
+    if (token !== '$' && token !== '$$') continue;
+    if (!opening || opening.token !== token) {
+      opening = {token, index:match.index};
+      continue;
+    }
+    const body = source.slice(opening.index + token.length, match.index);
+    output += source.slice(copied, opening.index);
+    output += token === '$' ? '\\(' + body + '\\)' : '\\[' + body + '\\]';
+    copied = match.index + token.length;
+    opening = null;
+  }
+  return output + source.slice(copied);
+}
 
 /* Parse the supported ex_test commands without executing LaTeX. */
 function parseExamTex(source,route="vn",bulk=false) {

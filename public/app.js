@@ -555,7 +555,7 @@ function questionEditor(){
     <div class="editor-content">
       <label>Nguồn / ID SAT <input name="source" placeholder="93954cfa hoặc tên nguồn"></label><label>Đề bài <textarea name="q" rows="3" maxlength="12000" placeholder="Nhập đề bài" required></textarea></label>
       ${imageButton('q','đề bài')}<p class="muted editor-hint">Đề bài tối đa 3 hình. Bảng và hình được chèn tại con trỏ.</p>
-      <p class="muted editor-hint">Dùng <code>$...$</code> cho công thức toán.</p>
+      <p class="muted editor-hint">Dùng <code>$...$</code> cho công thức toán. Nhập giá tiền bằng <code>\\$10</code>.</p>
       <fieldset data-answer-type="mc"><legend>Phương án</legend><p class="muted editor-hint">Chọn vòng tròn cạnh phương án đúng.</p>${rows}</fieldset>
       <fieldset data-answer-type="tf" hidden disabled><legend>Mệnh đề và đáp án</legend>${statements}</fieldset>
       <fieldset data-answer-type="short" hidden disabled><legend>Đáp số</legend><label><span class="visually-hidden">Đáp số</span><input name="answer" aria-describedby="short-key-hint" placeholder="Ví dụ: -3/2" required></label><p id="short-key-hint" class="muted"></p></fieldset>
