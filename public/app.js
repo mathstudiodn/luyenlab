@@ -781,6 +781,7 @@ app.addEventListener('change',event=>{if(page==='setup'&&(event.target.name==='t
 app.addEventListener('click',event=>{
   const tableButton=event.target.closest('[data-table-field]');
   if(tableButton && isAdmin) openTableEditor(tableButton);
+  const tikz=event.target.closest('[data-tikz]');if(tikz&&isAdmin)openTikzEditor(tikz);
   const b=event.target.closest('[data-picture]');if(b&&isAdmin)choosePictures(b);
 });
 app.addEventListener('change',event=>{

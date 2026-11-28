@@ -1,5 +1,5 @@
 const mediaBucket='studio-question-media';
-const mediaPattern=/\[\[hinh:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|png|webp))\]\]/g;
+const mediaPattern=/\[\[hinh:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|png|svg|webp))\]\]/g;
 const pendingMedia=new Map();
 function resetMedia(){
   for(const entry of pendingMedia.values())URL.revokeObjectURL(entry.url);
@@ -15,6 +15,7 @@ function renderMediaText(value){
   });
 }
 const adminGlyphs={
+  tikz:'<path d="m4 19 7-15 9 15zM4 19l10-6"/><circle cx="11" cy="4" r="2"/>',
   table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M10 10v10"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.4"/><path d="m3 17 5-5 4 4 4-6 5 7"/>',
   preview:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
@@ -27,7 +28,7 @@ function adminIcon(icon,label,attribute,value,disabled=false){
   return '<button type="button" class="admin-icon icon-'+icon+'" '+attribute+'="'+esc(value)+'" title="'+esc(label)+'" aria-label="'+esc(label)+'" '+(disabled?'disabled':'')+'><svg aria-hidden="true" viewBox="0 0 24 24">'+adminGlyphs[icon]+'</svg></button>';
 }
 function imageButton(name,label){
-  return '<span class="field-tools">'+adminIcon('table','Thêm bảng vào '+label,'data-table-field',name)+adminIcon('image','Chèn hình vào '+label,'data-picture',name)+'</span>';
+  return '<span class="field-tools">'+adminIcon('table','Thêm bảng vào '+label,'data-table-field',name)+adminIcon('image','Chèn hình vào '+label,'data-picture',name)+adminIcon('tikz','Chèn TikZ vào '+label,'data-tikz',name)+'</span>';
 }
 function previewMetadata(q){
   const leaf=catalogLeaves().find(l=>l.id===q.catalog_id);
@@ -55,28 +56,38 @@ async function prepareImage(file){
 }
 function promptImageCount(text,legacy){return [...text.matchAll(mediaPattern)].length+Number(Boolean(legacy));}
 function retainedImage(form){return form.elements.removeLegacy?.checked?'':editingQuestion?.image||'';}
-function choosePictures(button){
-  const form=button.form,field=form.elements[button.dataset.picture],notice=form.querySelector('#form-feedback');
+function mediaDestination(button,name){
+  const form=button.form,field=form.elements[name],notice=form.querySelector('#form-feedback');
   const start=field.selectionStart,end=field.selectionEnd,before=field.value,original=editingQuestion;
+  return async (files,{preserveTikzSvg=false}={})=>{
+    const save=form.querySelector('[type=submit]');
+    if(save.disabled)throw new Error('Hãy chờ thao tác lưu hoàn tất.');
+    save.disabled=true;
+    try{
+      const rest=before.slice(0,start)+before.slice(end);
+      if(name==='q' && promptImageCount(rest,retainedImage(form))+files.length>3)throw new Error('Đề bài chứa tối đa 3 hình.');
+      const entries=[];
+      for(const file of files){
+        const {blob,ext}=preserveTikzSvg && file.type==='image/svg+xml'
+          ? {blob:file,ext:'svg'} : await prepareImage(file);
+        entries.push({name:crypto.randomUUID()+'.'+ext,blob});
+      }
+      if(!form.isConnected||field.value!==before||original!==editingQuestion)throw new Error('Nội dung đã thay đổi. Đặt lại con trỏ rồi chèn hình.');
+      const marker=entries.map(x=>'[[hinh:'+x.name+']]').join('');
+      if(field.maxLength>=0 && rest.length+marker.length>field.maxLength)throw new Error('Nội dung vượt độ dài của trường.');
+      for(const {name,blob} of entries)pendingMedia.set(name,{blob,url:URL.createObjectURL(blob),stored:false});
+      field.setRangeText(marker,start,end,'end');field.focus();
+      notice.textContent='Đã chèn '+entries.length+' hình. Bấm Xem trước để kiểm tra.';
+    }finally{save.disabled=false;}
+  };
+}
+function choosePictures(button){
+  const insert=mediaDestination(button,button.dataset.picture);
   const input=document.createElement('input');
   input.type='file';input.multiple=true;input.accept='image/jpeg,image/png,image/svg+xml,image/webp,.svg,.webp';
   input.onchange=async()=>{
-    const files=[...input.files];if(!files.length)return;
-    const saveButton=form.querySelector('[type=submit]');
-    if(saveButton.disabled)return;
-    const withoutSelection=before.slice(0,start)+before.slice(end);
-    if(field.name==='q'&&promptImageCount(withoutSelection,retainedImage(form))+files.length>3){notice.textContent='Đề bài chứa tối đa 3 hình. Hãy bỏ bớt hình trước khi chèn.';return;}
-    saveButton.disabled=true;notice.textContent='Đang đọc hình…';
-    try{
-      const batch=[];
-      for(const file of files)batch.push(await prepareImage(file));
-      if(!form.isConnected||field.value!==before||original!==editingQuestion)throw new Error('Nội dung đã thay đổi. Đặt lại con trỏ và chèn hình.');
-      const entries=batch.map(({blob,ext})=>({blob,name:crypto.randomUUID()+'.'+ext}));
-      const insert=entries.map(x=>'[[hinh:'+x.name+']]').join('');
-      if(field.maxLength>=0&&withoutSelection.length+insert.length>field.maxLength)throw new Error('Nội dung vượt độ dài của trường.');
-      for(const {name,blob} of entries)pendingMedia.set(name,{blob,url:URL.createObjectURL(blob),stored:false});
-      field.setRangeText(insert,start,end,'end');field.focus();notice.textContent='Đã chèn '+entries.length+' hình. Bấm Xem trước để kiểm tra vị trí.';
-    }catch(e){notice.textContent=e.message;}finally{saveButton.disabled=false;}
+    if(!input.files.length)return;
+    try{await insert(input.files);}catch(e){button.form.querySelector('#form-feedback').textContent=e.message;}
   };
   input.click();
 }

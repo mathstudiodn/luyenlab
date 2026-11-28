@@ -8,3 +8,9 @@ Dùng lại repo GitHub và dự án Supabase đang lưu câu hỏi, tài khoả
 4. Dùng tên miền pages.dev được cấp để thử luyện nhanh, đăng nhập học sinh, lưu và mở lại kết quả, đăng nhập Admin, mở ngân hàng và dán một ảnh để chuyển sang TeX. Nếu dùng link xác nhận hoặc khôi phục mật khẩu của Supabase, cập nhật URL chuyển hướng cho tên miền mới.
 5. Chỉ khi tất cả hoạt động mới gửi URL mới cho học sinh và ngắt tự động deploy trên Netlify. Phiên đăng nhập và dữ liệu chỉ lưu trong trình duyệt thuộc từng tên miền. Học sinh đăng nhập lại trên tên miền mới.
 6. Các tệp SQL đi kèm dùng để đối chiếu. Trên cơ sở dữ liệu hiện có, chỉ chạy migration của tính năng chưa cài (ví dụ bank-notes.sql nếu nâng cấp lên Ghi chú lần đầu). Không chạy lại seed khi chuyển hosting.
+
+## Chèn hình TikZ ngay trong trình duyệt
+
+Trong Admin → Soạn câu hỏi, đặt con trỏ ở đề bài, phương án hoặc lời giải. Chọn biểu tượng Chèn TikZ, dán mã tikzpicture rồi bấm Xem trước hình. Chọn định dạng chèn PNG hoặc SVG rồi bấm Chèn hình. Bấm Lưu câu hỏi để tải ảnh lên kho hình của dự án. Nút Tải PNG và Tải SVG dùng để lưu ảnh về máy.
+
+Build bằng node scripts/build.mjs, thư mục xuất dist. Để lưu hình SVG, chạy supabase/question-media.sql một lần trong SQL Editor của dự án Supabase. Nếu nâng cấp từ bản Euclide, bỏ functions/api/tikz.js và thư mục compiler khỏi repo. Tính năng TikZ chạy bằng các tệp tĩnh do Pages phục vụ.

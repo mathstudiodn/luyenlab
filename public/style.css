@@ -290,3 +290,11 @@ mark { background: #ffeba8; }
 .preview-meta{background:#eef8ff;border-radius:10px;padding:.75rem;margin:.5rem 0}
 .preview-meta dt{font-size:.8rem;color:#435f70}.preview-meta dd{margin:2px 0;font-weight:600}
 @media(max-width:480px){.answer-row,.statement-row{gap:3px}.statement-row select{max-width:4.5rem}.admin-icon{width:30px;min-width:30px}.answer-text{gap:4px;padding:0 4px}}
+
+.tikz-editor{width:min(46rem,94vw);max-height:90vh;overflow:auto}
+.tikz-editor textarea{display:block;width:100%;font-family:monospace;resize:vertical}
+.tikz-editor img:not([hidden]){display:block;max-width:100%;max-height:40vh;margin:.7rem auto}
+.tikz-editor [hidden]{display:none}
+.tikz-view{overflow:auto;max-height:44vh}
+.tikz-view img:not([hidden]){max-width:none;max-height:none}
+.tikz-tools:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}

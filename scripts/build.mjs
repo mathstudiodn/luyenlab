@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
@@ -15,3 +16,7 @@ cpSync('public','dist',{recursive:true});
 writeFileSync('dist/config.js','window.STUDIO_CONFIG='+config+';\n');
 mkdirSync('server-config',{recursive:true});
 writeFileSync('server-config/supabase-public.mjs','export default '+config+';\n');
+// Pinned upstream npm archive (@rod2ik/tikzjax); Pages serves the compiler locally.
+mkdirSync('dist/vendor/tikzjax',{recursive:true});
+execFileSync('tar',['-xzf','scripts/tikzjax-1.6.0.tgz','-C','dist/vendor/tikzjax','--strip-components=2','package/dist']);
+execFileSync('tar',['-xzf','scripts/tikzjax-1.6.0.tgz','-C','dist/vendor/tikzjax','--strip-components=1','package/LICENSE','package/README.md']);
